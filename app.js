@@ -1,14 +1,19 @@
 import express from 'express'
+import artTemplate from 'express-art-template'
 import morgan from 'morgan'
-import crypto from 'node:crypto'
 import cors from 'cors'
+import 'dotenv/config'
 
-import * as dbfile from './db.json' assert { type: 'json' }
+import Person from './models/person.js'
 
-let db = dbfile.default
+const app = express()
+const environment = process.env.NODE_ENV
+
+// Set template engine
+app.engine('art', artTemplate)
+app.set('view engine', 'art');
 
 // Set up express and express included middleware
-const app = express()
 app.use(express.json())
 
 // Set up morgan
@@ -20,63 +25,95 @@ app.use(morgan(
 // Set up cors
 app.use(cors())
 
-// Query functions
-const queryPersonsById = id => db.find(persons => id === persons.id)
-const queryPersonsByName = name => db.find(persons => name.toLowerCase() === persons.name.toLowerCase())
-
 /* Get requests */
 
-app.get('/api/persons', (_req, res) => {
-  res.json(db)
+app.get('/api/persons', (_req, res, next) => {
+  Person.find({})
+    .then(persons => {
+      res.json(persons)
+    })
+    .catch(next)
 })
 
-app.get('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id)
-  const person = queryPersonsById(id)
-  person ? res.json(person) : res.status(404).send('Person not found')
+app.get('/api/persons/:id', (req, res, next) => {
+  Person.findById(req.params.id)
+    .then(person => {
+      res.json(person)
+    })
+    .catch(err => {
+      if (err.name === 'CastError') {
+        next({
+          status: 400,
+          message: 'Invalid id'
+        })
+      } else {
+        next(err)
+      }
+    })
 })
 
-app.get('/info', (req, res) => {
-  const htmlInfo = `<p>Phonebook has info for ${db.length} people</p>
-<br/>
-<p>${(new Date())}</p>
-`
-
-  res.send(htmlInfo)
+app.get('/info', (req, res, next) => {
+  Person.find({})
+    .then(persons => {
+      res.render('index', {
+        personCount: persons.length,
+        dateRequested: (new Date()).toUTCString()
+      })
+    })
+    .catch(next)
 })
 
 /* Post Requests */
 
-app.post('/api/persons', (req, res) => {
+app.post('/api/persons', (req, res, next) => {
   const body = req.body
 
   if (!body.name) {
-    res.status(400).send('Name for contact not specified')
-  }
-  else if (queryPersonsByName(body.name)) {
-    res.status(400).send('Name already exists in phonebook')
+    next({
+      status: 400,
+      message: 'Name for contact not specified'
+    })
   }
   else if (!body.number) {
-    res.status(400).send('Number for contact not specified')
+    next({
+      status: 400,
+      message: 'Number for contact not specified'
+    })
   }
   else {
-    const newPerson = {
-      id: crypto.randomUUID(),
+    const newPerson = new Person({
       name: body.name,
       number: body.number
-    }
+    })
 
-    db.push(newPerson)
-    res.json(newPerson)
+    newPerson.save()
+      .then(savedPerson => {
+        res.json(savedPerson)
+      })
+      .catch(next)
   }
 })
 
 /* Delete requests */
 
 app.delete('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id)
-  db = db.filter(person => person.id !== id)
-  res.status(204).end()
+  throw {
+    status: 501,
+    error: 'Service not implemented'
+  }
+})
+
+// Catch 404 and forward to error handler
+app.use((_req, _res, _next) => {
+  throw {
+    status: 404,
+    message: 'Resource not found'
+  }
+})
+
+// Error handler
+app.use((err, req, res, _next) => {
+  res.status(err.status || 500).json(err)
 })
 
 // Set port and listen

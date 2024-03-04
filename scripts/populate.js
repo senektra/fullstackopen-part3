@@ -1,19 +1,16 @@
 import mongoose from "mongoose"
 
+import * as dbfile from '../db.json' assert { type: 'json' }
+
+let db = dbfile.default
+
 const args = {
   password: null,
-  name: null,
-  number: null
 }
 
 if (process.argv.length < 3) {
   console.log('give password as argument')
   process.exit(1)
-}
-
-if (process.argv.length > 3) {
-  args.name = process.argv[3]
-  args.number = process.argv[4]
 }
 
 args.password = process.argv[2]
@@ -32,21 +29,10 @@ const personSchema = new mongoose.Schema({
 
 const Person = mongoose.model('Person', personSchema)
 
-if (args.name) {
-  const person = new Person({
-    name: args.name,
-    number: args.number,
-  })
-  
-  person.save().then(result => {
-    console.log('person saved')
+const personsToSave = db.map(person => new Person({...person}))
+
+Person.bulkSave(personsToSave)
+  .then(data => {
+    console.log(data)
     mongoose.connection.close()
   })
-} else {
-  Person.find({}).then(result => {
-    result.forEach(person => {
-      console.log(person)
-    })
-    mongoose.connection.close()
-  })
-}
