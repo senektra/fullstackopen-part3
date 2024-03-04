@@ -119,7 +119,7 @@ app.use((err, _req, res, next) => {
   else if (err.name === 'ValidationError') {
     next({
       status: 400,
-      message: err.errors.name.message
+      message: Object.values(err.errors)[0].message
     })
   } else {
     console.log(err)
