@@ -29,17 +29,13 @@ app.use(cors())
 
 app.get('/api/persons', (_req, res, next) => {
   Person.find({})
-    .then(persons => {
-      res.json(persons)
-    })
+    .then(persons => res.json(persons))
     .catch(next)
 })
 
 app.get('/api/persons/:id', (req, res, next) => {
   Person.findById(req.params.id)
-    .then(person => {
-      res.json(person)
-    })
+    .then(person => res.json(person))
     .catch(next)
 })
 
@@ -57,16 +53,16 @@ app.get('/info', (req, res, next) => {
 /* Post Requests */
 
 app.post('/api/persons', (req, res, next) => {
-  const body = req.body
+  const { name, number } = req.body
 
-  if (!body.name) {
+  if (!name) {
     next({
       status: 400,
       error: 'NameError',
       message: 'Name for contact not specified'
     })
   }
-  else if (!body.number) {
+  else if (!number) {
     next({
       status: 400,
       error: 'NumberError',
@@ -74,15 +70,10 @@ app.post('/api/persons', (req, res, next) => {
     })
   }
   else {
-    const newPerson = new Person({
-      name: body.name,
-      number: body.number
-    })
+    const newPerson = new Person({ name, number})
 
     newPerson.save()
-      .then(savedPerson => {
-        res.json(savedPerson)
-      })
+      .then(savedPerson => res.json(savedPerson))
       .catch(next)
   }
 })
@@ -90,14 +81,13 @@ app.post('/api/persons', (req, res, next) => {
 /* Put requests */
 
 app.put('/api/persons/:id', (req, res, next) => {
-  const body = req.body
+  const { name, number } = req.body
 
-  const newPerson = {
-    name: body.name,
-    number: body.number
-  }
-
-  Person.findByIdAndUpdate(req.params.id, newPerson, { new: true })
+  Person.findByIdAndUpdate(
+    req.params.id,
+    { name, number },
+    { new: true, runValidators: true, context: 'query' }
+  )
     .then(updatedPerson => res.json(updatedPerson))
     .catch(next)
 })
@@ -119,11 +109,17 @@ app.use((_req, _res, next) => {
 })
 
 // Catch non-api errors
-app.use((err, _req, _res, next) => {
+app.use((err, _req, res, next) => {
   if (err.name === 'CastError') {
     next({
       status: 400,
       message: 'Invalid id'
+    })
+  }
+  else if (err.name === 'ValidationError') {
+    next({
+      status: 400,
+      message: err.errors.name.message
     })
   } else {
     console.log(err)

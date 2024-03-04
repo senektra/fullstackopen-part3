@@ -6,7 +6,11 @@ mongoose.set('strictQuery', false)
 mongoose.connect(mongoose_uri)
 
 const personSchema = new mongoose.Schema({
-  name: String,
+  name: {
+    type: String,
+    minLength: [3, 'Name must be at least 3 characters long'],
+    required: [true, 'Name is required']
+  },
   number: String
 })
 
