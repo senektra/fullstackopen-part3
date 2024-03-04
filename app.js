@@ -40,16 +40,7 @@ app.get('/api/persons/:id', (req, res, next) => {
     .then(person => {
       res.json(person)
     })
-    .catch(err => {
-      if (err.name === 'CastError') {
-        next({
-          status: 400,
-          message: 'Invalid id'
-        })
-      } else {
-        next(err)
-      }
-    })
+    .catch(next)
 })
 
 app.get('/info', (req, res, next) => {
@@ -71,12 +62,14 @@ app.post('/api/persons', (req, res, next) => {
   if (!body.name) {
     next({
       status: 400,
+      error: 'NameError',
       message: 'Name for contact not specified'
     })
   }
   else if (!body.number) {
     next({
       status: 400,
+      error: 'NumberError',
       message: 'Number for contact not specified'
     })
   }
@@ -94,25 +87,52 @@ app.post('/api/persons', (req, res, next) => {
   }
 })
 
+/* Put requests */
+
+app.put('/api/persons/:id', (req, res, next) => {
+  const body = req.body
+
+  const newPerson = {
+    name: body.name,
+    number: body.number
+  }
+
+  Person.findByIdAndUpdate(req.params.id, newPerson, { new: true })
+    .then(updatedPerson => res.json(updatedPerson))
+    .catch(next)
+})
+
 /* Delete requests */
 
-app.delete('/api/persons/:id', (req, res) => {
-  throw {
-    status: 501,
-    error: 'Service not implemented'
-  }
+app.delete('/api/persons/:id', (req, res, next) => {
+  Person.findByIdAndDelete(req.params.id)
+    .then(() => res.status(204).end())
+    .catch(next)
 })
 
 // Catch 404 and forward to error handler
-app.use((_req, _res, _next) => {
-  throw {
+app.use((_req, _res, next) => {
+  next({
     status: 404,
     message: 'Resource not found'
+  })
+})
+
+// Catch non-api errors
+app.use((err, _req, _res, next) => {
+  if (err.name === 'CastError') {
+    next({
+      status: 400,
+      message: 'Invalid id'
+    })
+  } else {
+    console.log(err)
+    next(err)
   }
 })
 
-// Error handler
-app.use((err, req, res, _next) => {
+// Handle errors
+app.use((err, _req, res, _next) => {
   res.status(err.status || 500).json(err)
 })
 
