@@ -16,7 +16,7 @@ app.set('view engine', 'art')
 app.use(express.json())
 
 // Set up morgan
-morgan.token('body', (req) => JSON.stringify(req.body))
+morgan.token('body', (req, _res) => JSON.stringify(req.body))
 app.use(morgan(
   ':method :url :status :res[content-length] - :response-time ms :body'
 ))
@@ -108,7 +108,7 @@ app.use((_req, _res, next) => {
 })
 
 // Catch non-api errors
-app.use((err, req, res, next) => {
+app.use((err, _req, _res, next) => {
   if (err.name === 'CastError') {
     next({
       status: 400,
@@ -127,7 +127,7 @@ app.use((err, req, res, next) => {
 })
 
 // Handle errors
-app.use((err, req, res, next) => {
+app.use((err, _req, res, _next) => {
   console.log('err', err)
   res.status(err.status || 500).json(err)
 })
