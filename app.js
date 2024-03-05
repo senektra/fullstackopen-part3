@@ -127,7 +127,7 @@ app.use((err, req, res, next) => {
 })
 
 // Handle errors
-app.use((err, req, res) => {
+app.use((err, req, res, next) => {
   res.status(err.status || 500).json(err)
 })
 
