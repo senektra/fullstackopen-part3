@@ -1,8 +1,7 @@
-import mongoose from "mongoose"
+import mongoose from 'mongoose'
+import { readFileSync } from 'fs'
 
-import * as dbfile from '../db.json' assert { type: 'json' }
-
-let db = dbfile.default
+let db = JSON.parse(readFileSync('../db.json'))
 
 const args = {
   password: null,
@@ -15,7 +14,7 @@ if (process.argv.length < 3) {
 
 args.password = process.argv[2]
 
-const url = 
+const url =
   `mongodb+srv://rcvallada:${args.password}@fso.qwd1v1s.mongodb.net/phonebook?retryWrites=true&w=majority&appName=fso`
 
 mongoose.set('strictQuery', false)
@@ -29,7 +28,7 @@ const personSchema = new mongoose.Schema({
 
 const Person = mongoose.model('Person', personSchema)
 
-const personsToSave = db.map(person => new Person({...person}))
+const personsToSave = db.map(person => new Person({ ...person }))
 
 Person.bulkSave(personsToSave)
   .then(data => {

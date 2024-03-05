@@ -7,17 +7,16 @@ import 'dotenv/config'
 import Person from './models/person.js'
 
 const app = express()
-const environment = process.env.NODE_ENV
 
 // Set template engine
 app.engine('art', artTemplate)
-app.set('view engine', 'art');
+app.set('view engine', 'art')
 
 // Set up express and express included middleware
 app.use(express.json())
 
 // Set up morgan
-morgan.token('body', (req, res) => JSON.stringify(req.body))
+morgan.token('body', (req) => JSON.stringify(req.body))
 app.use(morgan(
   ':method :url :status :res[content-length] - :response-time ms :body'
 ))
@@ -70,7 +69,7 @@ app.post('/api/persons', (req, res, next) => {
     })
   }
   else {
-    const newPerson = new Person({ name, number})
+    const newPerson = new Person({ name, number })
 
     newPerson.save()
       .then(savedPerson => res.json(savedPerson))
@@ -109,7 +108,7 @@ app.use((_req, _res, next) => {
 })
 
 // Catch non-api errors
-app.use((err, _req, res, next) => {
+app.use((err, req, res, next) => {
   if (err.name === 'CastError') {
     next({
       status: 400,
@@ -128,7 +127,7 @@ app.use((err, _req, res, next) => {
 })
 
 // Handle errors
-app.use((err, _req, res, _next) => {
+app.use((err, req, res) => {
   res.status(err.status || 500).json(err)
 })
 
